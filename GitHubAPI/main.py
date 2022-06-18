@@ -8,8 +8,6 @@ def encrypt(public_key: str, secret_value: str):
 	encrypted = sealed_box.encrypt(secret_value.encode("utf-8"))
 	return base64.b64encode(encrypted).decode("utf-8")
 
-# "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"
-# Webbuilder = "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"
 
 class GithubAPI:
   headers = {"Authorization": "","Accept": "application/vnd.github.v3+json"}
@@ -37,29 +35,26 @@ class GithubAPI:
     url = self.baseURL + f"repos/{template_owner}/{template_repo}/generate"
     return requests.post(url, data=self.payload, headers=self.headers).json()
   
-  def create_new_repo(self,  name, description="", is_private=False):
-    self.payload = '{"name": "'+name+'", "description": "'+description+'", "private": '+str(is_private).lower()+'}'
+  def create_new_repo(self):
+    self.payload = '{"name": "'+self.repo_name+'", "description": "'+self.repo_description+'", "private": '+str(self.is_repo_private).lower()+'}'
     url = self.baseURL + "user/repos"
     return requests.post(url, data=self.payload, headers=self.headers).json()
   
   # NEW FILE REQUIRED 
   # NOT WORK ON EXISTING FILE
-  def update_file(self, owner, repo, path, content, message="", ):    
+  def update_file(self, path, content, message="", ):    
     self.payload = '{"message":"' + message + '","content":"' +  base64.b64encode(content.encode("ascii")).decode("ascii") + '"}'
-    url = self.baseURL + f"repos/{owner}/{repo}/contents/{path}"
+    url = self.baseURL + f"repos/{self.repo_owner}/{self.repo_name}/contents/{path}"
     return requests.put(url, data=self.payload, headers=self.headers).json()
   
-  def get_public_key(self, owner, repo):
-    self.payload = '{"owner": "'+owner+'", "repo": "'+repo+'"}'
-    url = self.baseURL + f"repos/{owner}/{repo}/actions/secrets/public-key"	
+  def get_public_key(self):
+    self.payload = '{"owner": "'+self.repo_owner+'", "repo": "'+self.repo_name+'"}'
+    url = self.baseURL + f"repos/{self.repo_owner}/{self.repo_name}/actions/secrets/public-key"	
     return requests.get(url, data=self.payload, headers=self.headers).json()
   
-  def add_environment_variable(self, owner, repo, key, value):
-    tmp = dict(self.get_public_key(owner, repo))
+  def add_environment_variable(self, key, value):
+    tmp = dict(self.get_public_key(self.repo_owner, self.repo_name))
     enc_value = encrypt(tmp.get("key"), value)
     self.payload = '{"encrypted_value":"' + enc_value + '","key_id":"' + tmp.get("key_id") +'"}'
-    url = self.baseURL + f"repos/{owner}/{repo}/actions/secrets/{key}"	
+    url = self.baseURL + f"repos/{self.repo_owner}/{self.repo_name}/actions/secrets/{key}"	
     return requests.put(url, data=self.payload, headers=self.headers).json()
-  
-# gh = GithubAPI("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")
-# pprint(gh.add_environment_variable("webbuilderReact", "demo-template", "REACT_APP_USER_JWT", "26112002"))
